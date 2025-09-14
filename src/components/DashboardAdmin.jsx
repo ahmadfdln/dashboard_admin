@@ -31,6 +31,7 @@ const sidebarItems = [
 ];
 
 function DashboardAdmin() {
+  // console.log(import.meta.env.VITE_API_KEY);
   const [activeTab, setActiveTab] = useState('overview');
   const [usersList, setUsersList] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
