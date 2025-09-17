@@ -5,7 +5,10 @@ import LoginPage from './pages/login/login_page';
 // 1. Impor ToastContainer dan CSS-nya
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// 2. Impor semua komponen dasbor
 import DashboardAdmin from './components/DashboardAdmin';
+import { DashboardDosen } from './pages/dosen/DashboardDosen';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -13,7 +16,7 @@ function App() {
     <BrowserRouter>
       <ToastContainer
         position="top-right"
-        autoClose={5000}
+        autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick
@@ -26,13 +29,24 @@ function App() {
       
       <div className="App">
         <Routes>
+          {/* Rute Publik */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Navigate replace to="/login" />} />
+          
+          {/* Rute Terproteksi untuk Admin */}
           <Route path='/dashboard-admin' element={
              <ProtectedRoute>
-             <DashboardAdmin />
-           </ProtectedRoute>
+               <DashboardAdmin />
+             </ProtectedRoute>
           } /> 
+
+          {/* Rute Terproteksi baru untuk Dosen */}
+          <Route path='/dashboard-dosen' element={
+             <ProtectedRoute>
+               <DashboardDosen />
+             </ProtectedRoute>
+          } />
+
         </Routes>
       </div>
     </BrowserRouter>
@@ -40,4 +54,3 @@ function App() {
 }
 
 export default App;
-

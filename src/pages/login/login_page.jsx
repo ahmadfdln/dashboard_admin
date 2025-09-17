@@ -1,28 +1,20 @@
-// src/components/LoginPage.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Impor 'db' dan fungsi firestore
 import { auth, db } from '../../config/firebase'; 
-import { doc, getDoc, setDoc } from 'firebase/firestore'; 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut
-} from 'firebase/auth';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Shield } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore'; 
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-function LoginPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoginView, setIsLoginView] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     if (!email || !password) return toast.warn('Mohon isi email dan password.');
     setIsLoading(true);
     
@@ -30,62 +22,36 @@ function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 1. Ambil data user dari Firestore untuk cek role
+      // Ambil data user dari Firestore untuk memeriksa perannya
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
-        // 2. Jika user adalah admin, lanjutkan
-        toast.success(`Login berhasil! Selamat datang, Admin ${user.email}`);
-        // Arahkan ke dasbor admin
-        setTimeout(() => navigate('/dashboard-admin'), 1500); 
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = userData.role;
+
+        // Arahkan pengguna berdasarkan perannya
+        if (userRole === 'admin') {
+          toast.success(`Login berhasil! Selamat datang, Admin ${userData.nama || user.email}`);
+          navigate('/dashboard-admin');
+        } else if (userRole === 'dosen') {
+          toast.success(`Login berhasil! Selamat datang, ${userData.nama || user.email}`);
+          navigate('/dashboard-dosen');
+        } else {
+          // Jika role adalah 'mahasiswa' atau tidak terdefinisi, tolak akses web
+          await signOut(auth);
+          toast.error('Akses ditolak. Mahasiswa hanya bisa login melalui aplikasi mobile.');
+        }
       } else {
-        // 3. Jika bukan admin atau data tidak ditemukan, tolak login
+        // Jika data pengguna tidak ada di Firestore
         await signOut(auth);
-        toast.error('Akses ditolak. Anda bukan admin.');
+        toast.error('Data pengguna tidak ditemukan. Hubungi administrator.');
       }
     } catch (error) {
       console.error('Error saat login:', error);
       let friendlyMessage = 'Email atau password yang Anda masukkan salah.';
       if (error.code === 'auth/invalid-credential') {
         friendlyMessage = 'Email atau password salah.';
-      }
-      toast.error(friendlyMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegister = async () => {
-    if (!email || !password) return toast.warn('Mohon isi email dan password.');
-    setIsLoading(true);
-    
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Simpan data admin ke Firestore dengan role 'admin'
-      // ID dokumen di Firestore akan sama dengan UID user di Authentication
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        role: 'admin',
-        nama: 'Admin Utama', // Anda bisa menambahkan form untuk nama nanti
-        dibuatPada: new Date()
-      });
-      
-      // (Opsional) Kirim verifikasi email, lalu logout agar admin login kembali
-      await sendEmailVerification(user);
-      await signOut(auth);
-      
-      toast.info('Registrasi Admin berhasil! Link verifikasi telah dikirim. Silakan login setelah verifikasi.');
-      setIsLoginView(true); // Langsung arahkan ke tampilan login
-    } catch (error) {
-      console.error('Error saat registrasi:', error);
-      let friendlyMessage = 'Terjadi kesalahan saat registrasi.';
-      if (error.code === 'auth/email-already-in-use') {
-        friendlyMessage = 'Email ini sudah terdaftar. Silakan login.';
-      } else if (error.code === 'auth/weak-password') {
-        friendlyMessage = 'Password terlalu lemah (minimal 6 karakter).';
       }
       toast.error(friendlyMessage);
     } finally {
@@ -103,17 +69,17 @@ function LoginPage() {
       <div className="relative z-10 bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            {isLoginView ? <User className="w-8 h-8 text-white" /> : <Shield className="w-8 h-8 text-white" />}
+            <User className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            {isLoginView ? 'Admin Login' : 'Register Admin'}
+            Selamat Datang
           </h1>
           <p className="text-gray-500 mt-2">
-            {isLoginView ? 'Masuk ke akun Anda untuk melanjutkan' : 'Buat akun admin baru'}
+            Masuk ke akun Anda untuk melanjutkan
           </p>
         </div>
 
-        <div className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 block">Email</label>
             <div className="relative">
@@ -122,9 +88,9 @@ function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@email.com"
+                placeholder="nama@email.com"
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
             </div>
           </div>
@@ -139,12 +105,12 @@ function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 backdrop-blur-sm"
+                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -152,36 +118,21 @@ function LoginPage() {
           </div>
 
           <button
-            onClick={isLoginView ? handleLogin : handleRegister}
+            type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition disabled:opacity-70 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
-                {isLoginView ? 'Masuk' : 'Daftar'}
+                Masuk
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
-        </div>
-
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => {
-              setIsLoginView(!isLoginView);
-              setEmail('');
-              setPassword('');
-            }}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors hover:underline"
-          >
-            {isLoginView ? 'Belum punya akun admin? Daftar' : 'Sudah punya akun? Masuk'}
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );
 }
-
-export default LoginPage;
