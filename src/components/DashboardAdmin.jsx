@@ -2,16 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
+  LayoutDashboard,
+  UserPlus,
+  BookPlus,
+  UserCog,
+  DoorOpen,
   Users,
-  BookOpen,
-  MapPin,
-  UserCheck,
   GraduationCap,
-  Settings,
-  Trash2,
+  BookOpenCheck,
 } from "lucide-react";
 
-// Firebase (Path diperbaiki dan semua fungsi yang dibutuhkan diimpor)
 import { auth, db } from "../config/firebase";
 import { signOut } from "firebase/auth";
 import {
@@ -39,16 +39,16 @@ import ManajemenRuangan from "./admin/views/ManajemenRuangan";
 import AturDosenMK from "./admin/views/AturDosenMK";
 import { DataMataKuliah } from "./admin/views/DataMataKuliah";
 
-// Definisi item sidebar dengan ID yang konsisten
+// Definisi item sidebar dengan icon modern yang lebih sesuai
 const sidebarItems = [
-  { id: "overview", label: "Dashboard", icon: Settings },
-  { id: "pengguna", label: "Tambah Pengguna", icon: Users },
-  { id: "matakuliah", label: "Tambah Mata Kuliah", icon: BookOpen },
-  { id: "aturdosenmk", label: "Atur Dosen & MK", icon: UserCheck },
-  { id: "ruangan", label: "Tambah Ruangan", icon: MapPin },
+  { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+  { id: "pengguna", label: "Tambah Pengguna", icon: UserPlus },
+  { id: "matakuliah", label: "Tambah Mata Kuliah", icon: BookPlus },
+  { id: "aturdosenmk", label: "Atur Dosen & MK", icon: UserCog },
+  { id: "ruangan", label: "Tambah Ruangan", icon: DoorOpen },
   { id: "dataMahasiswa", label: "Data Mahasiswa", icon: GraduationCap },
-  { id: "dataDosen", label: "Data Dosen", icon: UserCheck },
-  { id: "dataMataKuliah", label: "Data Mata Kuliah", icon: Trash2 },
+  { id: "dataDosen", label: "Data Dosen", icon: Users },
+  { id: "dataMataKuliah", label: "Data Mata Kuliah", icon: BookOpenCheck },
 ];
 
 function DashboardAdmin() {

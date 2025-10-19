@@ -3,9 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
-  BookOpen, MapPin, PlayCircle, StopCircle, LogOut, Users, Clock, History, Calendar,
-  ChevronRight, User, BarChart3, TrendingUp, CheckCircle, Eye, Filter,
-  Search, Download, RefreshCw, Bell, Grid3X3, Menu, X
+  BookOpen, LogOut, Users, History, Calendar,
+  User, BarChart3, Bell, Grid3X3, Menu, X
 } from 'lucide-react';
 
 import { auth, db, GeoPoint } from '../../config/firebase'; 
@@ -15,15 +14,13 @@ import {
   addDoc, updateDoc, Timestamp, onSnapshot
 } from 'firebase/firestore';
 
-// Import komponen-komponen terpisah
-import Sidebar from '../../components/dosen/Sidebar';
-import Header from '../../components/dosen/Header';
+// Import komponen
 import DashboardContent from '../../components/dosen/DashboardContent';
-import {JadwalContent} from '../../components/dosen/JadwalContent';
+import { JadwalContent } from '../../components/dosen/JadwalContent';
 import RiwayatContent from '../../components/dosen/RiwayatContent';
 import StatistikContent from '../../components/dosen/StatistikContent';
-import MahasiswaContent from '../../components/dosen/MahasiswaContent';
 import LoadingSpinner from '../../components/dosen/LoadingSpinner';
+import { MahasiswaView } from '../../components/dosen/MahasiswaView';
 
 export function DashboardDosen() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -41,8 +38,19 @@ export function DashboardDosen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRiwayatLoading, setIsRiwayatLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+
+  // 🔹 State untuk statistik grafik
+  const [kehadiranHistoris, setKehadiranHistoris] = useState([]);
+  const [statistikGrafik, setStatistikGrafik] = useState({
+    kehadiranPerMK: [],
+    perkembanganMingguan: [],
+    topMahasiswa: [],
+    statusSesi: []
+  });
+
   const navigate = useNavigate();
 
+  // 🔹 Cek login user
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -55,6 +63,7 @@ export function DashboardDosen() {
     return () => unsubscribe();
   }, [navigate]);
 
+  // 🔹 Ambil data awal
   const fetchInitialData = useCallback(async (uid) => {
     setIsLoading(true);
     try {
@@ -110,6 +119,116 @@ export function DashboardDosen() {
     }
   };
 
+  // 🔹 Fetch statistik grafik dari Firestore
+  const fetchStatistikGrafik = useCallback(async (uid, users, mkList) => {
+    try {
+      const sesiQuery = query(
+        collection(db, "sesiAbsensi"),
+        where("idDosen", "==", uid),
+        where("status", "==", "selesai")
+      );
+      const sesiSnapshot = await getDocs(sesiQuery);
+      const semuaKehadiran = [];
+
+      for (const sesiDoc of sesiSnapshot.docs) {
+        const kehadiranRef = collection(db, "sesiAbsensi", sesiDoc.id, "kehadiran");
+        const kehadiranSnap = await getDocs(kehadiranRef);
+        kehadiranSnap.docs.forEach(doc => {
+          semuaKehadiran.push({
+            id: doc.id,
+            ...doc.data(),
+            idSesi: sesiDoc.id,
+            ...sesiDoc.data()
+          });
+        });
+      }
+
+      setKehadiranHistoris(semuaKehadiran);
+
+      // 1. Kehadiran per Mata Kuliah
+      const kehadiranPerMK = mkList.map(mk => {
+        const sesiMK = sesiSnapshot.docs
+          .filter(doc => doc.data().namaMK === mk.namaMK)
+          .map(doc => doc.id);
+        const totalHadir = semuaKehadiran.filter(k => sesiMK.includes(k.idSesi)).length;
+        const totalMahasiswa = users.length;
+        const totalSesi = sesiMK.length;
+        const maksimalKehadiran = totalSesi * totalMahasiswa;
+        const persentase = maksimalKehadiran > 0 ? Math.round((totalHadir / maksimalKehadiran) * 100) : 0;
+        return {
+          namaMK: mk.namaMK,
+          kehadiran: persentase,
+          totalHadir,
+          totalSesi
+        };
+      }).filter(item => item.totalSesi > 0);
+
+      // 2. Perkembangan Mingguan (4 minggu terakhir)
+      const now = new Date();
+      const perkembanganMingguan = [];
+      for (let i = 3; i >= 0; i--) {
+        const start = new Date(now);
+        start.setDate(now.getDate() - (i * 7) - 7);
+        const end = new Date(now);
+        end.setDate(now.getDate() - (i * 7));
+
+        const sesiMingguIni = sesiSnapshot.docs.filter(doc => {
+          const waktu = doc.data().waktuMulai.toDate();
+          return waktu >= start && waktu < end;
+        });
+
+        const totalKehadiran = semuaKehadiran.filter(k =>
+          sesiMingguIni.some(s => s.id === k.idSesi)
+        ).length;
+
+        const totalPotensi = sesiMingguIni.length * users.length;
+        const rataRata = totalPotensi > 0 ? Math.round((totalKehadiran / totalPotensi) * 100) : 0;
+
+        perkembanganMingguan.push({
+          minggu: `Minggu ${4 - i}`,
+          kehadiran: rataRata,
+          sesi: sesiMingguIni.length
+        });
+      }
+
+      // 3. Top Mahasiswa
+      const kehadiranMahasiswa = {};
+      semuaKehadiran.forEach(k => {
+        kehadiranMahasiswa[k.uid] = (kehadiranMahasiswa[k.uid] || 0) + 1;
+      });
+
+      const topMahasiswa = Object.entries(kehadiranMahasiswa)
+        .map(([uid, count]) => {
+          const user = users.find(u => u.uid === uid);
+          return {
+            nama: user?.nama || 'Tidak dikenal',
+            hadir: count
+          };
+        })
+        .sort((a, b) => b.hadir - a.hadir)
+        .slice(0, 5);
+
+      // 4. Status Sesi
+      const sesiAktifCount = sesiAktif ? 1 : 0;
+      const sesiSelesaiCount = sesiSnapshot.size;
+      const statusSesi = [
+        { name: 'Aktif', value: sesiAktifCount, color: '#10B981' },
+        { name: 'Selesai', value: sesiSelesaiCount, color: '#3B82F6' }
+      ];
+
+      setStatistikGrafik({
+        kehadiranPerMK,
+        perkembanganMingguan,
+        topMahasiswa,
+        statusSesi
+      });
+
+    } catch (error) {
+      console.error("Gagal memuat statistik grafik:", error);
+      toast.error("Gagal memuat data statistik.");
+    }
+  }, [sesiAktif]);
+
   useEffect(() => {
     if (currentUser) fetchInitialData(currentUser.uid);
   }, [currentUser, fetchInitialData]);
@@ -121,6 +240,14 @@ export function DashboardDosen() {
     }
   }, [currentUser, activeTab, fetchRiwayat]);
 
+  // 🔹 Trigger fetch statistik saat data siap
+  useEffect(() => {
+    if (currentUser && usersList.length > 0 && mataKuliahList.length > 0) {
+      fetchStatistikGrafik(currentUser.uid, usersList, mataKuliahList);
+    }
+  }, [currentUser, usersList, mataKuliahList, riwayatSesi, fetchStatistikGrafik]);
+
+  // 🔹 Real-time pantau sesi
   useEffect(() => {
     if (!currentUser || usersList.length === 0) return;
     const qSesi = query(collection(db, 'sesiAbsensi'), where('idDosen', '==', currentUser.uid), where('status', '==', 'aktif'));
@@ -149,6 +276,7 @@ export function DashboardDosen() {
     return () => unsubSesi();
   }, [currentUser, usersList]);
 
+  // 🔹 Mulai sesi
   const handleMulaiSesi = async (mataKuliah, selectedRuang) => {
     if (!selectedRuang) return toast.warn("Harap pilih ruangan.");
     if (sesiAktif) return toast.error("Sesi lain sedang aktif.");
@@ -168,6 +296,7 @@ export function DashboardDosen() {
     }
   };
 
+  // 🔹 Akhiri sesi
   const handleAkhiriSesi = async () => {
     if (!sesiAktif || !window.confirm("Yakin ingin mengakhiri sesi ini?")) return;
     try {
@@ -178,6 +307,7 @@ export function DashboardDosen() {
     }
   };
   
+  // 🔹 Logout
   const handleLogout = async () => {
     if (window.confirm("Yakin ingin keluar?")) {
       await signOut(auth);
@@ -190,6 +320,7 @@ export function DashboardDosen() {
     fetchDetailKehadiran(sesi.id);
   }
 
+  // 🔹 Konten sesuai tab
   const renderContent = () => {
     if (!authChecked) {
       return <LoadingSpinner message="Memeriksa sesi login..." />;
@@ -221,15 +352,19 @@ export function DashboardDosen() {
           daftarHadir={daftarHadir} 
           mataKuliahList={mataKuliahList} 
           ruangKelasList={ruangKelasList} 
+          riwayatSesi={riwayatSesi}
+          usersList={usersList}
+          statistikGrafik={statistikGrafik}
+          kehadiranHistoris={kehadiranHistoris}
           handleMulaiSesi={handleMulaiSesi} 
           handleAkhiriSesi={handleAkhiriSesi} 
         />;
       case 'jadwal': 
         return <JadwalContent mataKuliahList={mataKuliahList} />;
       case 'mahasiswa':
-        return <MahasiswaContent 
+        return <MahasiswaView 
           mataKuliahList={mataKuliahList} 
-          usersList={usersList} 
+          isLoading={isLoading}
         />;
       case 'riwayat': 
         return <RiwayatContent 
@@ -255,7 +390,7 @@ export function DashboardDosen() {
   
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Mobile Sidebar Overlay */}
+      {/* 🔹 Sidebar + Header tetap ada */}
       {sidebarOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
@@ -263,7 +398,7 @@ export function DashboardDosen() {
         />
       )}
 
-      {/* Sidebar - Modern Design */}
+      {/* Sidebar */}
       <div className={`
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         lg:translate-x-0 transition-transform duration-300 ease-in-out
@@ -292,7 +427,7 @@ export function DashboardDosen() {
           </button>
         </div>
 
-        {/* User Profile Section */}
+        {/* User Profile */}
         <div className="px-6 py-4 border-b border-gray-200/50">
           <div className="flex items-center space-x-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -309,7 +444,7 @@ export function DashboardDosen() {
           </div>
         </div>
 
-        {/* Navigation - Enhanced */}
+        {/* Navigation */}
         <nav className="flex-1 px-6 py-4 overflow-y-auto">
           <div className="space-y-2">
             {[
@@ -353,7 +488,7 @@ export function DashboardDosen() {
           </div>
         </nav>
 
-        {/* Logout Button - Enhanced */}
+        {/* Logout */}
         <div className="p-6 border-t border-gray-200/50">
           <button
             onClick={handleLogout}
@@ -365,13 +500,13 @@ export function DashboardDosen() {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content + Header */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* Modern Header */}
+        {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              {/* Mobile Menu Button & Title */}
+              {/* Mobile Menu + Title */}
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setSidebarOpen(true)}
@@ -386,41 +521,33 @@ export function DashboardDosen() {
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {activeTab === 'dashboard' && 'Kelola sesi absensi dan pantau kehadiran mahasiswa'}
-                    {activeTab === 'jadwal' && 'Lihat jadwal mata kuliah yang diampu'}
-                    {activeTab === 'mahasiswa' && 'Kelola data mahasiswa dan enrollment'}
-                    {activeTab === 'riwayat' && 'Riwayat sesi absensi yang telah selesai'}
-                    {activeTab === 'statistik' && 'Analisis kehadiran dan performa kelas'}
+                    {activeTab === 'jadwal' && 'Lihat jadwal mata kuliah Anda'}
+                    {activeTab === 'mahasiswa' && 'Data mahasiswa per mata kuliah'}
+                    {activeTab === 'riwayat' && 'Riwayat sesi absensi Anda'}
+                    {activeTab === 'statistik' && 'Analisis kehadiran mahasiswa'}
                   </p>
                 </div>
               </div>
 
-              {/* Status Indicator */}
-              <div className="flex items-center space-x-4">
-                {sesiAktif && (
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-medium text-green-700">Sesi Aktif</span>
-                  </div>
-                )}
-                
-                {/* Notification Bell */}
-                <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
+              {/* Header Actions */}
+              <div className="flex items-center space-x-3">
+                <button className="p-2 rounded-xl hover:bg-gray-100 transition-colors relative">
                   <Bell className="w-5 h-5 text-gray-600" />
-                  {daftarHadir.length > 0 && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-                  )}
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
                 </button>
+                
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold">
+                  {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
+                </div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Content Area with Enhanced Styling */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Main Scrollable Content */}
+        <main className="flex-1 overflow-y-auto">
           <div className="p-6">
-            <div className="max-w-7xl mx-auto">
-              {renderContent()}
-            </div>
+            {renderContent()}
           </div>
         </main>
       </div>

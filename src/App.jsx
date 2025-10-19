@@ -10,6 +10,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import DashboardAdmin from './components/DashboardAdmin';
 import { DashboardDosen } from './pages/dosen/DashboardDosen';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ForgotPassword } from './pages/ressetPassword/resset_password_page';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Routes>
           {/* Rute Publik */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/" element={<Navigate replace to="/login" />} />
           
           {/* Rute Terproteksi untuk Admin */}

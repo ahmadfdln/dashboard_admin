@@ -1,0 +1,30 @@
+# Jangan upload dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+pnpm-lock.yaml
+
+# Build & dist hasil compile
+dist
+build
+.out
+.next
+.cache
+
+# File config lokal
+.env
+.env.local
+*.local
+
+# Folder Git
+.git
+.gitignore
+
+# File OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log

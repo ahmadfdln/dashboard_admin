@@ -8,12 +8,13 @@ export function DataDosen({ users, isLoading, handleDeleteUser }) {
   const filteredData = users
     .filter(user => user.role === 'dosen')
     .filter(user => 
-        user.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.nim_nidn.toLowerCase().includes(searchQuery.toLowerCase())
+        (user.nama && user.nama.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.nim_nidn && user.nim_nidn.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
   // Fungsi untuk membuat inisial dari nama
   const getInitials = (name) => {
+    if (!name) return 'D';
     return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   };
 
@@ -41,6 +42,8 @@ export function DataDosen({ users, isLoading, handleDeleteUser }) {
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Nama</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">NIDN</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Fakultas</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Prodi</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
               <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Aksi</th>
             </tr>
@@ -48,17 +51,17 @@ export function DataDosen({ users, isLoading, handleDeleteUser }) {
           <tbody className="divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan="4" className="text-center py-8">
-                    <div className="flex justify-center items-center gap-2 text-gray-500">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
-                        <span>Memuat data...</span>
-                    </div>
+                <td colSpan="6" className="text-center py-8">
+                  <div className="flex justify-center items-center gap-2 text-gray-500">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
+                    <span>Memuat data...</span>
+                  </div>
                 </td>
               </tr>
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan="4" className="text-center py-8 text-gray-500">
-                    {searchQuery ? `Tidak ada dosen dengan nama/NIDN "${searchQuery}"` : "Tidak ada data dosen."}
+                <td colSpan="6" className="text-center py-8 text-gray-500">
+                  {searchQuery ? `Tidak ada dosen dengan nama/NIDN "${searchQuery}"` : "Tidak ada data dosen."}
                 </td>
               </tr>
             ) : (
@@ -71,11 +74,13 @@ export function DataDosen({ users, isLoading, handleDeleteUser }) {
                         </div>
                         <div>
                             <p className="font-medium text-gray-900">{user.nama}</p>
-                            <p className="text-xs text-gray-500">{user.uid}</p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-700 font-mono">{user.nim_nidn}</td>
+                  <td className="px-6 py-4 text-gray-700">{user.fakultas || '-'}</td>
+                  <td className="px-6 py-4 text-gray-700">{user.prodi || '-'}</td>
                   <td className="px-6 py-4 text-gray-700">{user.email}</td>
                   <td className="px-6 py-4 text-center">
                     <button 
