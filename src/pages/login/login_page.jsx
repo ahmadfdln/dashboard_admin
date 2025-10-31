@@ -5,7 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { toast } from "react-toastify";
-import Logo from "../../assets/logo.png";
+import logo from "../../assets/logo.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -93,7 +93,7 @@ export default function LoginPage() {
       <div className="relative z-10 bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-900 to-green-500 rounded-2xl mb-4 shadow-lg">
-            <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
+            <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Selamat Datang
