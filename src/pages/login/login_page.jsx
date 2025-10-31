@@ -5,7 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { toast } from "react-toastify";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/Picture2.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 🔐 Fungsi Login
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) {
