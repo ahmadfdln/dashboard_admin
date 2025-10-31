@@ -79,7 +79,8 @@ const ChartCard = ({ title, subtitle, icon: Icon, children, className = "" }) =>
 const DashboardContent = ({ 
   isLoading, 
   sesiAktif, 
-  daftarHadir, 
+  daftarHadir,
+  daftarIzin = [], // <-- PROP BARU DITAMBAHKAN
   mataKuliahList = [], 
   ruangKelasList = [], 
   riwayatSesi = [],
@@ -89,8 +90,9 @@ const DashboardContent = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRuang, setSelectedRuang] = useState('');
+  const [activeTab, setActiveTab] = useState('hadir'); // <-- STATE BARU UNTUK TAB
 
-  // Generate advanced analytics data
+  // ... (useMemo analyticsData tetap sama) ...
   const analyticsData = useMemo(() => {
     // Trend kehadiran mingguan dengan smooth curve
     const weeklyTrend = [
@@ -168,6 +170,7 @@ const DashboardContent = ({
       jamKehadiran
     };
   }, [mataKuliahList]);
+
 
   if (isLoading && !sesiAktif) {
     return (
@@ -277,50 +280,135 @@ const DashboardContent = ({
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white/10 backdrop-blur rounded-2xl p-6">
+                
+                {/* ========== PERUBAHAN DIMULAI DI SINI: TABBED INTERFACE ========== */}
+                
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold">Daftar Kehadiran</h3>
+                  {/* Tombol Tab */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActiveTab('hadir')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        activeTab === 'hadir' ? 'bg-white text-green-600' : 'bg-transparent text-white/70 hover:text-white'
+                      }`}
+                    >
+                      Hadir ({daftarHadir.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('izin')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        activeTab === 'izin' ? 'bg-white text-amber-600' : 'bg-transparent text-white/70 hover:text-white'
+                      }`}
+                    >
+                      Izin ({daftarIzin.length})
+                    </button>
+                  </div>
+                  
+                  {/* Indikator Status */}
                   <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-sm font-semibold">{daftarHadir.length} Hadir</span>
+                    <div className={`w-2 h-2 ${
+                      activeTab === 'hadir' ? 'bg-green-400' : 'bg-amber-400'
+                    } rounded-full animate-pulse`} />
+                    <span className="text-sm font-semibold">
+                      {activeTab === 'hadir' ? `${daftarHadir.length} Hadir` : `${daftarIzin.length} Izin`}
+                    </span>
                   </div>
                 </div>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {daftarHadir.length > 0 ? (
-                    daftarHadir.map((mhs, idx) => (
-                      <motion.div
-                        key={mhs.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="flex items-center justify-between bg-white/10 backdrop-blur p-4 rounded-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold">{mhs.namaMahasiswa}</p>
-                            <p className="text-sm opacity-75">Check-in berhasil</p>
-                          </div>
+
+                <AnimatePresence mode="wait">
+                  {/* Tab Daftar Hadir */}
+                  {activeTab === 'hadir' && (
+                    <motion.div
+                      key="hadir-list"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-3 max-h-96 overflow-y-auto"
+                    >
+                      {daftarHadir.length > 0 ? (
+                        daftarHadir.map((mhs, idx) => (
+                          <motion.div
+                            key={mhs.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="flex items-center justify-between bg-white/10 backdrop-blur p-4 rounded-xl"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className="font-semibold">{mhs.namaMahasiswa}</p>
+                                <p className="text-sm opacity-75">Check-in berhasil</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">
+                                {new Date(mhs.waktuAbsen?.seconds * 1000).toLocaleTimeString('id-ID', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </p>
+                              <CheckCircle className="w-4 h-4 ml-auto mt-1" />
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <Users size={48} className="mx-auto mb-4 opacity-50" />
+                          <p className="text-lg font-medium opacity-90">Menunggu mahasiswa check-in</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">
-                            {new Date(mhs.waktuAbsen?.seconds * 1000).toLocaleTimeString('id-ID', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </p>
-                          <CheckCircle className="w-4 h-4 ml-auto mt-1" />
-                        </div>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <Users size={48} className="mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium opacity-90">Menunggu mahasiswa check-in</p>
-                    </div>
+                      )}
+                    </motion.div>
                   )}
-                </div>
+                  
+                  {/* Tab Daftar Izin */}
+                  {activeTab === 'izin' && (
+                    <motion.div
+                      key="izin-list"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-3 max-h-96 overflow-y-auto"
+                    >
+                      {daftarIzin.length > 0 ? (
+                        daftarIzin.map((mhs, idx) => (
+                          <motion.div
+                            key={mhs.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="flex items-center justify-between bg-white/10 backdrop-blur p-4 rounded-xl"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-amber-300">
+                                <Clock className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-semibold">{mhs.namaMahasiswa}</p>
+                                {/* Asumsi ada field 'keterangan' di data izin */}
+                                <p className="text-sm opacity-75">{mhs.keterangan || 'Menunggu konfirmasi'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-sm opacity-75">
+                                {/* Asumsi ada field 'waktuIzin' */}
+                                {mhs.waktuIzin ? new Date(mhs.waktuIzin.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Baru saja'}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <Clock size={48} className="mx-auto mb-4 opacity-50" />
+                          <p className="text-lg font-medium opacity-90">Tidak ada mahasiswa yang izin</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {/* ========== PERUBAHAN SELESAI ========== */}
               </div>
 
               <div className="space-y-4">
@@ -328,6 +416,14 @@ const DashboardContent = ({
                   <div className="text-4xl font-bold mb-2">{daftarHadir.length}</div>
                   <p className="text-sm opacity-90">Mahasiswa Hadir</p>
                 </div>
+
+                {/* ========== KARTU METRIK BARU UNTUK IZIN ========== */}
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center">
+                  <div className="text-4xl font-bold mb-2 text-amber-300">{daftarIzin.length}</div>
+                  <p className="text-sm opacity-90">Mahasiswa Izin</p>
+                </div>
+                {/* ================================================ */}
+
                 <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center">
                   <div className="text-4xl font-bold mb-2">
                     {Math.round((daftarHadir.length / (usersList.length || 1)) * 100) || 0}%
@@ -348,384 +444,385 @@ const DashboardContent = ({
           </motion.div>
         ) : (
           <>
-            {/* Advanced Analytics Grids */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* 1. Trend Kehadiran - Area Chart */}
-              <ChartCard 
-                title="Trend Kehadiran Mingguan" 
-                subtitle="8 minggu terakhir"
-                icon={TrendingUp}
-                className="lg:col-span-2"
-              >
-                <ResponsiveContainer width="100%" height={320}>
-                  <AreaChart data={analyticsData.weeklyTrend}>
-                    <defs>
-                      <linearGradient id="colorKehadiran" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                      </linearGradient>
-                      <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis 
-                      dataKey="minggu" 
-                      stroke="#9ca3af" 
-                      style={{ fontSize: 12, fontWeight: 500 }} 
-                    />
-                    <YAxis 
-                      stroke="#9ca3af" 
-                      style={{ fontSize: 12 }}
-                      domain={[70, 100]}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="kehadiran" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      fill="url(#colorKehadiran)" 
-                      name="Kehadiran"
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="target" 
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      fill="url(#colorTarget)" 
-                      name="Target"
-                    />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={36}
-                      iconType="circle"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              {/* 2. Performance Radar */}
-              <ChartCard 
-                title="Analisis Performa" 
-                subtitle="Metrik pembelajaran"
-                icon={Target}
-              >
-                <ResponsiveContainer width="100%" height={320}>
-                  <RadarChart data={analyticsData.performanceMetrics}>
-                    <PolarGrid stroke="#e5e7eb" />
-                    <PolarAngleAxis 
-                      dataKey="metric" 
-                      style={{ fontSize: 11, fontWeight: 500 }}
-                    />
-                    <PolarRadiusAxis 
-                      angle={90} 
-                      domain={[0, 100]}
-                      style={{ fontSize: 10 }}
-                    />
-                    <Radar 
-                      name="Performa" 
-                      dataKey="value" 
-                      stroke="#8b5cf6" 
-                      fill="#8b5cf6" 
-                      fillOpacity={0.6}
-                      strokeWidth={2}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
-
-            {/* Second Row of Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* 3. Kehadiran Per Mata Kuliah - Stacked Bar */}
-              <ChartCard 
-                title="Kehadiran per Mata Kuliah" 
-                subtitle="Perbandingan status kehadiran"
-                icon={BookOpen}
-              >
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={analyticsData.kehadiranPerMK}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                    <XAxis 
-                      dataKey="namaMK" 
-                      stroke="#9ca3af"
-                      style={{ fontSize: 11 }}
-                      angle={-20}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend iconType="circle" />
-                    <Bar dataKey="hadir" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} name="Hadir" />
-                    <Bar dataKey="izin" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} name="Izin" />
-                    <Bar dataKey="alpha" stackId="a" fill="#ef4444" radius={[8, 8, 0, 0]} name="Alpha" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              {/* 4. Distribusi Kehadiran - Donut Chart */}
-              <ChartCard 
-                title="Distribusi Status Kehadiran" 
-                subtitle="Total 890 pertemuan"
-                icon={PieChartIcon}
-              >
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={analyticsData.distribusiKehadiran}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                      label={({ name, percentage }) => `${name} ${percentage}%`}
-                      labelLine={false}
-                    >
-                      {analyticsData.distribusiKehadiran.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
-
-            {/* Third Row of Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* 5. Kehadiran Harian */}
-              <ChartCard 
-                title="Kehadiran per Hari" 
-                subtitle="Minggu ini"
-                icon={Calendar}
-                className="lg:col-span-2"
-              >
-                <ResponsiveContainer width="100%" height={280}>
-                  <ComposedChart data={analyticsData.kehadiranHarian}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                    <XAxis dataKey="hari" stroke="#9ca3af" style={{ fontSize: 12, fontWeight: 500 }} />
-                    <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} domain={[0, 300]} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend iconType="circle" />
-                    <Bar dataKey="hadir" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Hadir" />
-                    <Line 
-                      type="monotone" 
-                      dataKey="total" 
-                      stroke="#ef4444" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={{ fill: '#ef4444', r: 4 }}
-                      name="Total Mahasiswa"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              {/* 6. Top Mahasiswa */}
-              <ChartCard 
-                title="Mahasiswa Terbaik" 
-                subtitle="Top 5 kehadiran"
-                icon={Award}
-              >
-                <div className="space-y-3">
-                  {analyticsData.topMahasiswa.map((mhs, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl hover:from-gray-100 hover:to-blue-100 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                          idx === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-500' :
-                          idx === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
-                          idx === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
-                          'bg-gradient-to-r from-blue-400 to-blue-600'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm">{mhs.nama}</p>
-                          <p className="text-xs text-gray-500">{mhs.hadir} pertemuan</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-600">{mhs.persentase}%</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </ChartCard>
-            </div>
-
-            {/* Jam Kehadiran Chart */}
-            <ChartCard 
-              title="Distribusi Jam Kehadiran" 
-              subtitle="Pola waktu check-in mahasiswa"
-              icon={Clock}
-            >
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={analyticsData.jamKehadiran}>
-                  <defs>
-                    <linearGradient id="colorJam" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                  <XAxis dataKey="jam" stroke="#9ca3af" style={{ fontSize: 12 }} />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="jumlah" 
-                    stroke="#8b5cf6" 
-                    strokeWidth={3}
-                    fill="url(#colorJam)"
-                    name="Jumlah Check-in"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            {/* Course Selection */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Mulai Sesi Absensi</h2>
-                  <p className="text-gray-600">Pilih mata kuliah dan ruangan untuk memulai sesi kehadiran</p>
-                </div>
-                <div className="relative w-full md:w-auto">
-                  <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari mata kuliah..." 
-                    value={searchTerm} 
-                    onChange={(e) => setSearchTerm(e.target.value)} 
-                    className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full md:w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" 
-                  />
-                </div>
-              </div>
-              
-              <div className="grid gap-4">
-                {mataKuliahList
-                  .filter(mk =>
-                    mk.namaMK.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    mk.kodeMK.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((mk, index) => (
-                  <motion.div
-                    key={mk.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
-                  >
-                    <div className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                        {/* Course Info */}
-                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform">
-                            <BookOpen className="w-7 h-7 text-white" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{mk.namaMK}</h3>
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg">
-                                {mk.kodeMK}
-                              </span>
-                              <span className="flex items-center gap-1.5 text-gray-600 text-sm">
-                                <Clock className="w-4 h-4" />
-                                {mk.sks || 3} SKS
-                              </span>
-                              <span className="flex items-center gap-1.5 text-gray-600 text-sm">
-                                <Users className="w-4 h-4" />
-                                {Math.floor(Math.random() * 50) + 30} Mahasiswa
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="hidden lg:flex items-center gap-6 px-6 border-l border-gray-100">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">
-                              {Math.floor(Math.random() * 10) + 15}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">Sesi</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600">
-                              {Math.floor(Math.random() * 15) + 80}%
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">Kehadiran</div>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
-                          <select 
-                            onChange={e => setSelectedRuang(e.target.value)} 
-                            value={selectedRuang}
-                            className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm hover:border-gray-300 transition-colors"
-                          >
-                            <option value="">Pilih Ruangan</option>
-                            {ruangKelasList?.map(r => (
-                              <option key={r.id} value={r.id}>
-                                {r.kodeRuangan || r.namaRuang}
-                              </option>
-                            ))}
-                          </select>
-                          
-                          <motion.button 
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleMulaiSesi(mk, selectedRuang)} 
-                            disabled={!selectedRuang}
-                            className={`
-                              flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-xl text-sm
-                              transition-all duration-200 whitespace-nowrap shadow-sm
-                              ${selectedRuang
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:from-green-600 hover:to-emerald-700'
-                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              }
-                            `}
-                          >
-                            <PlayCircle className="w-5 h-5" />
-                            Mulai Absensi
-                          </motion.button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                
-                {mataKuliahList.filter(mk =>
-                  mk.namaMK.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  mk.kodeMK.toLowerCase().includes(searchTerm.toLowerCase())
-                ).length === 0 && (
-                  <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
-                    <Search size={56} className="text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 font-semibold text-lg mb-2">Tidak ada mata kuliah ditemukan</p>
-                    <p className="text-gray-400 text-sm">Coba gunakan kata kunci yang berbeda</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
+            {/* ... (Sisa kode analytics, tidak perlu diubah) ... */}
+             {/* Advanced Analytics Grids */}
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+               
+               {/* 1. Trend Kehadiran - Area Chart */}
+               <ChartCard 
+                 title="Trend Kehadiran Mingguan" 
+                 subtitle="8 minggu terakhir"
+                 icon={TrendingUp}
+                 className="lg:col-span-2"
+               >
+                 <ResponsiveContainer width="100%" height={320}>
+                   <AreaChart data={analyticsData.weeklyTrend}>
+                     <defs>
+                       <linearGradient id="colorKehadiran" x1="0" y1="0" x2="0" y2="1">
+                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                       </linearGradient>
+                       <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
+                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                         <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                       </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                     <XAxis 
+                       dataKey="minggu" 
+                       stroke="#9ca3af" 
+                       style={{ fontSize: 12, fontWeight: 500 }} 
+                     />
+                     <YAxis 
+                       stroke="#9ca3af" 
+                       style={{ fontSize: 12 }}
+                       domain={[70, 100]}
+                     />
+                     <Tooltip content={<CustomTooltip />} />
+                     <Area 
+                       type="monotone" 
+                       dataKey="kehadiran" 
+                       stroke="#3b82f6" 
+                       strokeWidth={3}
+                       fill="url(#colorKehadiran)" 
+                       name="Kehadiran"
+                     />
+                     <Area 
+                       type="monotone" 
+                       dataKey="target" 
+                       stroke="#10b981" 
+                       strokeWidth={2}
+                       strokeDasharray="5 5"
+                       fill="url(#colorTarget)" 
+                       name="Target"
+                     />
+                     <Legend 
+                       verticalAlign="top" 
+                       height={36}
+                       iconType="circle"
+                     />
+                   </AreaChart>
+                 </ResponsiveContainer>
+               </ChartCard>
+ 
+               {/* 2. Performance Radar */}
+               <ChartCard 
+                 title="Analisis Performa" 
+                 subtitle="Metrik pembelajaran"
+                 icon={Target}
+               >
+                 <ResponsiveContainer width="100%" height={320}>
+                   <RadarChart data={analyticsData.performanceMetrics}>
+                     <PolarGrid stroke="#e5e7eb" />
+                     <PolarAngleAxis 
+                       dataKey="metric" 
+                       style={{ fontSize: 11, fontWeight: 500 }}
+                     />
+                     <PolarRadiusAxis 
+                       angle={90} 
+                       domain={[0, 100]}
+                       style={{ fontSize: 10 }}
+                     />
+                     <Radar 
+                       name="Performa" 
+                       dataKey="value" 
+                       stroke="#8b5cf6" 
+                       fill="#8b5cf6" 
+                       fillOpacity={0.6}
+                       strokeWidth={2}
+                     />
+                     <Tooltip content={<CustomTooltip />} />
+                   </RadarChart>
+                 </ResponsiveContainer>
+               </ChartCard>
+             </div>
+ 
+             {/* Second Row of Charts */}
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+               
+               {/* 3. Kehadiran Per Mata Kuliah - Stacked Bar */}
+               <ChartCard 
+                 title="Kehadiran per Mata Kuliah" 
+                 subtitle="Perbandingan status kehadiran"
+                 icon={BookOpen}
+               >
+                 <ResponsiveContainer width="100%" height={300}>
+                   <BarChart data={analyticsData.kehadiranPerMK}>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                     <XAxis 
+                       dataKey="namaMK" 
+                       stroke="#9ca3af"
+                       style={{ fontSize: 11 }}
+                       angle={-20}
+                       textAnchor="end"
+                       height={80}
+                     />
+                     <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} />
+                     <Tooltip content={<CustomTooltip />} />
+                     <Legend iconType="circle" />
+                     <Bar dataKey="hadir" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} name="Hadir" />
+                     <Bar dataKey="izin" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} name="Izin" />
+                     <Bar dataKey="alpha" stackId="a" fill="#ef4444" radius={[8, 8, 0, 0]} name="Alpha" />
+                   </BarChart>
+                 </ResponsiveContainer>
+               </ChartCard>
+ 
+               {/* 4. Distribusi Kehadiran - Donut Chart */}
+               <ChartCard 
+                 title="Distribusi Status Kehadiran" 
+                 subtitle="Total 890 pertemuan"
+                 icon={PieChartIcon}
+               >
+                 <ResponsiveContainer width="100%" height={300}>
+                   <RechartsPieChart>
+                     <Pie
+                       data={analyticsData.distribusiKehadiran}
+                       cx="50%"
+                       cy="50%"
+                       innerRadius={60}
+                       outerRadius={100}
+                       paddingAngle={3}
+                       dataKey="value"
+                       label={({ name, percentage }) => `${name} ${percentage}%`}
+                       labelLine={false}
+                     >
+                       {analyticsData.distribusiKehadiran.map((entry, index) => (
+                         <Cell key={`cell-${index}`} fill={entry.color} />
+                       ))}
+                     </Pie>
+                     <Tooltip content={<CustomTooltip />} />
+                   </RechartsPieChart>
+                 </ResponsiveContainer>
+               </ChartCard>
+             </div>
+ 
+             {/* Third Row of Charts */}
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+               
+               {/* 5. Kehadiran Harian */}
+               <ChartCard 
+                 title="Kehadiran per Hari" 
+                 subtitle="Minggu ini"
+                 icon={Calendar}
+                 className="lg:col-span-2"
+               >
+                 <ResponsiveContainer width="100%" height={280}>
+                   <ComposedChart data={analyticsData.kehadiranHarian}>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                     <XAxis dataKey="hari" stroke="#9ca3af" style={{ fontSize: 12, fontWeight: 500 }} />
+                     <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} domain={[0, 300]} />
+                     <Tooltip content={<CustomTooltip />} />
+                     <Legend iconType="circle" />
+                     <Bar dataKey="hadir" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Hadir" />
+                     <Line 
+                       type="monotone" 
+                       dataKey="total" 
+                       stroke="#ef4444" 
+                       strokeWidth={2}
+                       strokeDasharray="5 5"
+                       dot={{ fill: '#ef4444', r: 4 }}
+                       name="Total Mahasiswa"
+                     />
+                   </ComposedChart>
+                 </ResponsiveContainer>
+               </ChartCard>
+ 
+               {/* 6. Top Mahasiswa */}
+               <ChartCard 
+                 title="Mahasiswa Terbaik" 
+                 subtitle="Top 5 kehadiran"
+                 icon={Award}
+               >
+                 <div className="space-y-3">
+                   {analyticsData.topMahasiswa.map((mhs, idx) => (
+                     <motion.div
+                       key={idx}
+                       initial={{ opacity: 0, x: -20 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       transition={{ delay: idx * 0.1 }}
+                       className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl hover:from-gray-100 hover:to-blue-100 transition-all"
+                     >
+                       <div className="flex items-center gap-3">
+                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                           idx === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-500' :
+                           idx === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400' :
+                           idx === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-600' :
+                           'bg-gradient-to-r from-blue-400 to-blue-600'
+                         }`}>
+                           {idx + 1}
+                         </div>
+                         <div>
+                           <p className="font-semibold text-gray-900 text-sm">{mhs.nama}</p>
+                           <p className="text-xs text-gray-500">{mhs.hadir} pertemuan</p>
+                         </div>
+                       </div>
+                       <div className="text-right">
+                         <p className="text-lg font-bold text-green-600">{mhs.persentase}%</p>
+                       </div>
+                     </motion.div>
+                   ))}
+                 </div>
+               </ChartCard>
+             </div>
+ 
+             {/* Jam Kehadiran Chart */}
+             <ChartCard 
+               title="Distribusi Jam Kehadiran" 
+               subtitle="Pola waktu check-in mahasiswa"
+               icon={Clock}
+             >
+               <ResponsiveContainer width="100%" height={250}>
+                 <AreaChart data={analyticsData.jamKehadiran}>
+                   <defs>
+                     <linearGradient id="colorJam" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                     </linearGradient>
+                   </defs>
+                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                   <XAxis dataKey="jam" stroke="#9ca3af" style={{ fontSize: 12 }} />
+                   <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} />
+                   <Tooltip content={<CustomTooltip />} />
+                   <Area 
+                     type="monotone" 
+                     dataKey="jumlah" 
+                     stroke="#8b5cf6" 
+                     strokeWidth={3}
+                     fill="url(#colorJam)"
+                     name="Jumlah Check-in"
+                   />
+                 </AreaChart>
+               </ResponsiveContainer>
+             </ChartCard>
+ 
+             {/* Course Selection */}
+             <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="space-y-6"
+             >
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                 <div>
+                   <h2 className="text-3xl font-bold text-gray-900 mb-2">Mulai Sesi Absensi</h2>
+                   <p className="text-gray-600">Pilih mata kuliah dan ruangan untuk memulai sesi kehadiran</p>
+                 </div>
+                 <div className="relative w-full md:w-auto">
+                   <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                   <input 
+                     type="text" 
+                     placeholder="Cari mata kuliah..." 
+                     value={searchTerm} 
+                     onChange={(e) => setSearchTerm(e.target.value)} 
+                     className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full md:w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" 
+                   />
+                 </div>
+               </div>
+               
+               <div className="grid gap-4">
+                 {mataKuliahList
+                   .filter(mk =>
+                     mk.namaMK.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                     mk.kodeMK.toLowerCase().includes(searchTerm.toLowerCase())
+                   )
+                   .map((mk, index) => (
+                   <motion.div
+                     key={mk.id}
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ delay: index * 0.05 }}
+                     className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+                   >
+                     <div className="p-6">
+                       <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                         {/* Course Info */}
+                         <div className="flex items-start gap-4 flex-1 min-w-0">
+                           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                             <BookOpen className="w-7 h-7 text-white" />
+                           </div>
+                           <div className="min-w-0 flex-1">
+                             <h3 className="text-xl font-bold text-gray-900 mb-2">{mk.namaMK}</h3>
+                             <div className="flex flex-wrap items-center gap-3">
+                               <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg">
+                                 {mk.kodeMK}
+                               </span>
+                               <span className="flex items-center gap-1.5 text-gray-600 text-sm">
+                                 <Clock className="w-4 h-4" />
+                                 {mk.sks || 3} SKS
+                               </span>
+                               <span className="flex items-center gap-1.5 text-gray-600 text-sm">
+                                 <Users className="w-4 h-4" />
+                                 {Math.floor(Math.random() * 50) + 30} Mahasiswa
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+ 
+                         {/* Stats */}
+                         <div className="hidden lg:flex items-center gap-6 px-6 border-l border-gray-100">
+                           <div className="text-center">
+                             <div className="text-2xl font-bold text-gray-900">
+                               {Math.floor(Math.random() * 10) + 15}
+                             </div>
+                             <div className="text-xs text-gray-500 mt-1">Sesi</div>
+                           </div>
+                           <div className="text-center">
+                             <div className="text-2xl font-bold text-green-600">
+                               {Math.floor(Math.random() * 15) + 80}%
+                             </div>
+                             <div className="text-xs text-gray-500 mt-1">Kehadiran</div>
+                           </div>
+                         </div>
+ 
+                         {/* Actions */}
+                         <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
+                           <select 
+                             onChange={e => setSelectedRuang(e.target.value)} 
+                             value={selectedRuang}
+                             className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm hover:border-gray-300 transition-colors"
+                           >
+                             <option value="">Pilih Ruangan</option>
+                             {ruangKelasList?.map(r => (
+                               <option key={r.id} value={r.id}>
+                                 {r.kodeRuangan || r.namaRuang}
+                               </option>
+                             ))}
+                           </select>
+                           
+                           <motion.button 
+                             whileHover={{ scale: 1.02 }}
+                             whileTap={{ scale: 0.98 }}
+                             onClick={() => handleMulaiSesi(mk, selectedRuang)} 
+                             disabled={!selectedRuang}
+                             className={`
+                               flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-xl text-sm
+                               transition-all duration-200 whitespace-nowrap shadow-sm
+                               ${selectedRuang
+                                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:from-green-600 hover:to-emerald-700'
+                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                               }
+                             `}
+                           >
+                             <PlayCircle className="w-5 h-5" />
+                             Mulai Absensi
+                           </motion.button>
+                         </div>
+                       </div>
+                     </div>
+                   </motion.div>
+                 ))}
+                 
+                 {mataKuliahList.filter(mk =>
+                   mk.namaMK.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                   mk.kodeMK.toLowerCase().includes(searchTerm.toLowerCase())
+                 ).length === 0 && (
+                   <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
+                     <Search size={56} className="text-gray-300 mx-auto mb-4" />
+                     <p className="text-gray-500 font-semibold text-lg mb-2">Tidak ada mata kuliah ditemukan</p>
+                     <p className="text-gray-400 text-sm">Coba gunakan kata kunci yang berbeda</p>
+                   </div>
+                 )}
+               </div>
+             </motion.div>
           </>
         )}
       </div>

@@ -35,7 +35,6 @@ export default function RiwayatContent({
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // ▼▼▼ FUNGSI HEADER BARU (MENGGUNAKAN GAMBAR) ▼▼▼
     const addHeader = () => {
       // Menambahkan gambar header lengkap
       // Argumen: gambar, format, x, y, width, height
@@ -44,8 +43,6 @@ export default function RiwayatContent({
       // Height = 45 (tinggi gambar header, sesuaikan jika gambar Anda lebih tinggi/rendah)
       doc.addImage(headerKampus, 'PNG', 10, 10, 190, 28);
     };
-    // ▲▲▲ AKHIR DARI FUNGSI HEADER BARU ▲▲▲
-
 
     // Panggil fungsi header
     addHeader();

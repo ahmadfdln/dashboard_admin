@@ -49,9 +49,14 @@ export function MahasiswaView({ mataKuliahList, isLoading: isCourseLoading }) {
   const filteredStudents = enrolledStudents.filter(student => {
     const matchSemester = filterSemester === "all" || String(student.semester) === String(filterSemester);
     const queryLower = searchQuery.toLowerCase();
+    
+    // --- PENYESUAIAN PENCARIAN ---
     const matchSearch = 
       student.nama?.toLowerCase().includes(queryLower) ||
-      student.nim?.toLowerCase().includes(queryLower);
+      student.nim?.toLowerCase().includes(queryLower) ||
+      student.prodi?.toLowerCase().includes(queryLower); // Ditambahkan pencarian prodi
+    // --- AKHIR PENYESUAIAN ---
+
     return matchSemester && matchSearch;
   });
 
@@ -117,7 +122,7 @@ export function MahasiswaView({ mataKuliahList, isLoading: isCourseLoading }) {
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari nama atau NIM..."
+                placeholder="Cari nama, NIM, atau prodi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -159,6 +164,11 @@ export function MahasiswaView({ mataKuliahList, isLoading: isCourseLoading }) {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nama Mahasiswa</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NIM</th>
+                  
+                  {/* --- TAMBAHAN BARU --- */}
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Prodi</th>
+                  {/* --- AKHIR TAMBAHAN --- */}
+                  
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Semester</th>
                 </tr>
               </thead>
@@ -174,6 +184,11 @@ export function MahasiswaView({ mataKuliahList, isLoading: isCourseLoading }) {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 font-mono">{student.nim}</td>
+                    
+                    {/* --- TAMBAJAN BARU --- */}
+                    <td className="px-4 py-3 text-gray-600">{student.prodi || '-'}</td>
+                    {/* --- AKHIR TAMBAHAN --- */}
+                    
                     <td className="px-4 py-3 text-gray-600">{student.semester || '-'}</td>
                   </tr>
                 ))}
