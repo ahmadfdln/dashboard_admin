@@ -7,8 +7,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // 2. Impor semua komponen dasbor
-import DashboardAdmin from './components/DashboardAdmin';
-import { DashboardDosen } from './pages/dosen/DashboardDosen';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
+import DashboardDosen from './pages/dosen/DashboardDosen';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ForgotPassword } from './pages/ressetPassword/resset_password_page';
 

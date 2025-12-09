@@ -16,6 +16,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
     if (!email || !password) {
       toast.warn("Mohon isi email dan password.");
       return;
@@ -27,7 +28,6 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 🔍 Ambil data user dari Firestore
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
@@ -35,7 +35,6 @@ export default function LoginPage() {
         const userData = userDoc.data();
         const userRole = userData.role;
 
-        // Simpan session manual agar tidak bentrok antar role
         if (userRole === "admin") {
           localStorage.setItem(
             "adminSession",
@@ -61,7 +60,6 @@ export default function LoginPage() {
           toast.success(`Login berhasil! Selamat datang, ${userData.nama || user.email}`);
           navigate("/dashboard-dosen");
         } else {
-          // Mahasiswa login via mobile app
           await signOut(auth);
           toast.error("Akses ditolak. Mahasiswa hanya bisa login melalui aplikasi mobile.");
         }
@@ -70,103 +68,107 @@ export default function LoginPage() {
         toast.error("Data pengguna tidak ditemukan. Hubungi administrator.");
       }
     } catch (error) {
-      console.error("Error saat login:", error);
-      let msg = "Email atau password salah.";
-      if (error.code === "auth/invalid-credential") msg = "Email atau password salah.";
-      toast.error(msg);
+      toast.error("Email atau password salah.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 🧱 UI Komponen Login
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 font-sans">
-      {/* Efek latar belakang blur */}
-      <div className="absolute inset-0 overflow-hidden z-0">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob animation-delay-2000"></div>
+    <div className="min-h-screen bg-[#0B1120] relative flex items-center justify-center overflow-hidden p-4">
+
+      {/* NEON DIAGONAL BACKGROUND */}
+      <div className="absolute w-full h-full pointer-events-none">
+        <div className="absolute right-0 top-0 w-[70%] h-[70%] bg-emerald-500 opacity-90 rotate-[-35deg] translate-x-40 -translate-y-40"></div>
       </div>
 
-      {/* Kartu Login */}
-      <div className="relative z-10 bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-900 to-green-500 rounded-2xl mb-4 shadow-lg">
-            <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
+      {/* CARD */}
+      <div className="relative z-[2] w-full max-w-sm">
+        <div className="bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6">
+
+          {/* Logo */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-2xl mb-3 shadow-xl">
+              <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
+            </div>
+            <h1 className="text-3xl font-bold text-white">Selamat Datang</h1>
+            <p className="text-gray-300 text-sm">Masuk untuk melanjutkan</p>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            Selamat Datang
-          </h1>
-          <p className="text-gray-500 mt-2">Masuk ke akun Anda untuk melanjutkan</p>
+
+          {/* FORM */}
+          <form onSubmit={handleLogin} className="space-y-4">
+
+            {/* Email */}
+            <div>
+              <label className="text-xs font-medium text-gray-300">Email</label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@email.com"
+                  required
+                  className="w-full pl-10 pr-4 py-3 bg-white/10 text-white border border-white/20 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-xs font-medium text-gray-300">Password</label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full pl-10 pr-12 py-3 bg-white/10 text-white border border-white/20 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+
+                {/* Toggle password */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="text-right text-xs mt-1">
+                <Link to="/forgot-password" className="text-emerald-400 hover:text-emerald-300">
+                  Lupa password?
+                </Link>
+              </div>
+            </div>
+
+            {/* Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-semibold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 transition"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  Masuk
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <p className="text-center text-xs text-gray-400">
+              Sistem Informasi Akademik
+            </p>
+          </div>
         </div>
-
-        {/* Form Login */}
-        <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 block">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@email.com"
-                required
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 block">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            {/* Link Lupa Password */}
-            <div className="text-sm text-right mt-1">
-              <Link
-                to="/forgot-password"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Lupa password Anda?
-              </Link>
-            </div>
-          </div>
-
-          {/* Tombol Login */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-900 to-green-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition disabled:opacity-70 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <>
-                Masuk
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
       </div>
     </div>
   );

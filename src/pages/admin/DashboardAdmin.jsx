@@ -12,7 +12,7 @@ import {
   BookOpenCheck,
 } from "lucide-react";
 
-import { auth, db } from "../config/firebase";
+import { auth, db } from "../../config/firebase";
 import { signOut } from "firebase/auth";
 import {
   collection,
@@ -28,18 +28,16 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
-// Impor komponen yang sudah dipecah dengan path dan sintaks yang benar
-import { AdminLayout } from "./admin/layout/AdminLayout";
-import { Overview } from "./admin/views/Overview";
-import { DataMahasiswa } from "./admin/views/DataMahasiswa";
-import { DataDosen } from "./admin/views/DataDosen";
-import { ManajemenPengguna } from "./admin/views/ManajemenPengguna";
-import ManajemenMataKuliah from "./admin/views/ManajemenMataKuliah";
-import ManajemenRuangan from "./admin/views/ManajemenRuangan";
-import AturDosenMK from "./admin/views/AturDosenMK";
-import { DataMataKuliah } from "./admin/views/DataMataKuliah";
+import { AdminLayout } from "../../components/admin/layout/AdminLayout";
+import { Overview } from "../../components/admin/views/Overview";
+import { DataMahasiswa } from "../../components/admin/views/DataMahasiswa";
+import { DataDosen } from "../../components/admin/views/DataDosen";
+import { ManajemenPengguna } from "../../components/admin/views/ManajemenPengguna";
+import ManajemenMataKuliah from "../../components/admin/views/ManajemenMataKuliah";
+import ManajemenRuangan from "../../components/admin/views/ManajemenRuangan";
+import AturDosenMK from "../../components/admin/views/AturDosenMK";
+import { DataMataKuliah } from "../../components/admin/views/DataMataKuliah";
 
-// Definisi item sidebar dengan icon modern yang lebih sesuai
 const sidebarItems = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "pengguna", label: "Tambah Pengguna", icon: UserPlus },

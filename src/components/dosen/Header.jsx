@@ -1,36 +1,46 @@
-// src/components/dashboard/Header.jsx
 import React from 'react';
-import { Bell, User } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 
-const Header = ({ activeTab, currentUser }) => {
-  const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'jadwal', label: 'Jadwal Mengajar' },
-    { id: 'riwayat', label: 'Riwayat Absensi' },
-    { id: 'statistik', label: 'Statistik' },
-  ];
-
+export default function DosenHeader({ activeTab, currentUser, setSidebarOpen }) {
   return (
-    <header className="bg-white shadow-sm h-20 flex items-center justify-between px-8 border-b border-gray-200 flex-shrink-0">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">{sidebarItems.find(item => item.id === activeTab)?.label || 'Dashboard'}</h1>
-        <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <button className="p-3 hover:bg-gray-100 rounded-xl transition-colors relative">
-          <Bell size={22} className="text-gray-600" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-        </button>
-        <div className="w-px h-8 bg-gray-200"></div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-            <User size={20} className="text-white" />
+    <header className="sticky top-0 z-10 bg-black/30 backdrop-blur-xl border-b border-white/10">
+      <div className="px-6 py-4 flex items-center justify-between">
+
+        {/* Mobile menu */}
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-xl hover:bg-white/10"
+          >
+            <Menu className="w-5 h-5 text-gray-300" />
+          </button>
+
+          <div>
+            <h2 className="text-2xl text-white font-bold capitalize">
+              {activeTab === 'dashboard' ? 'Dashboard Utama' : activeTab}
+            </h2>
+            <p className="text-sm text-gray-300 mt-1">
+              {activeTab === 'dashboard' && 'Kelola sesi absensi'}
+              {activeTab === 'jadwal' && 'Jadwal mengajar Anda'}
+              {activeTab === 'mahasiswa' && 'Data mahasiswa'}
+              {activeTab === 'riwayat' && 'Riwayat sesi absensi'}
+              {activeTab === 'statistik' && 'Statistik performa mahasiswa'}
+            </p>
           </div>
-          <span className="font-medium text-gray-700">{currentUser?.displayName?.split(' ')[0] || 'Dosen'}</span>
+        </div>
+
+        {/* Right profile */}
+        <div className="flex items-center space-x-3">
+          <button className="p-2 hover:bg-white/10 rounded-xl relative">
+            <Bell className="w-5 h-5 text-gray-300" />
+            <span className="absolute top-1.5 right-1.5 bg-red-500 w-2 h-2 rounded-full" />
+          </button>
+
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 text-white flex items-center justify-center">
+            {currentUser?.displayName?.charAt(0) || 'U'}
+          </div>
         </div>
       </div>
     </header>
   );
-};
-
-export default Header;
+}

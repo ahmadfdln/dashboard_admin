@@ -1,83 +1,198 @@
-import React from 'react';
-import { 
-  Grid3X3, Calendar, History, BarChart3, LogOut, User, Users, BookOpen
-} from 'lucide-react';
+import React from "react";
+import {
+  BookOpen,
+  Grid3X3,
+  Users,
+  History,
+  Calendar,
+  BarChart3,
+  LogOut,
+  X,
+} from "lucide-react";
+import { auth } from "../../config/firebase";
+import { signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Grid3X3, description: 'Ringkasan aktivitas' },
-  { id: 'jadwal', label: 'Jadwal Mengajar', icon: Calendar, description: 'Kelola jadwal kuliah' },
-  { id: 'mahasiswa', label: 'Mahasiswa Saya', icon: Users, description: 'Lihat mahasiswa per MK' },
-  { id: 'riwayat', label: 'Riwayat Absensi', icon: History, description: 'Data kehadiran mahasiswa' },
-  { id: 'statistik', label: 'Statistik', icon: BarChart3, description: 'Analisis kehadiran' },
-];
+export default function DosenSidebar({
+  sidebarOpen,
+  setSidebarOpen,
+  activeTab,
+  setActiveTab,
+  currentUser,
+}) {
+  const navigate = useNavigate();
 
-const Sidebar = ({ currentUser, activeTab, setActiveTab, handleLogout }) => (
-    <div className="w-80 bg-white shadow-xl flex flex-col border-r border-gray-200">
-      <div className="flex items-center justify-center h-20 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-700">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-            <BookOpen size={24} className="text-white" />
-          </div>
-          <span className="text-2xl font-bold text-white">Dosen Portal</span>
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: Grid3X3 },
+    { id: "jadwal", label: "Jadwal", icon: Calendar },
+    { id: "mahasiswa", label: "Mahasiswa", icon: Users },
+    { id: "riwayat", label: "Riwayat", icon: History },
+    { id: "statistik", label: "Statistik", icon: BarChart3 },
+  ];
+
+  const handleLogout = async () => {
+    if (window.confirm("Yakin ingin keluar?")) {
+      await signOut(auth);
+      navigate("/login");
+    }
+  };
+
+  return (
+    <aside
+      className={`
+        bg-black/30 backdrop-blur-xl border-r border-white/10
+        flex flex-col items-center
+        transition-transform duration-300
+        fixed inset-y-0 left-0 z-40 w-64
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        lg:static lg:translate-x-0 lg:w-20
+      `}
+    >
+      {/* Tombol close (mobile) */}
+      <button
+        onClick={() => setSidebarOpen(false)}
+        className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-white/10"
+      >
+        <X className="w-5 h-5 text-gray-300" />
+      </button>
+
+      {/* Logo (ikon saja di desktop) */}
+      <div className="w-full flex items-center justify-center lg:justify-center px-4 py-5 border-b border-white/10">
+        <div className="w-10 h-10 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center">
+          <BookOpen className="w-5 h-5 text-purple-300" />
+        </div>
+
+        {/* Teks logo hanya di mobile */}
+        <div className="ml-3 lg:hidden">
+          <h1 className="text-lg font-bold text-white">EduAttend</h1>
+          <p className="text-xs text-gray-400">Dashboard Dosen</p>
         </div>
       </div>
-      
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
-            <User size={32} className="text-white" />
+
+      {/* Profil user: ikon + tooltip saat hover */}
+      <div className="mt-4 mb-3">
+        <div className="relative group">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+            {currentUser?.displayName?.charAt(0) ||
+              currentUser?.email?.charAt(0) ||
+              "U"}
           </div>
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg truncate">
-              {currentUser?.displayName || 'Dosen'}
-            </h3>
-            <p className="text-gray-500 text-sm truncate">{currentUser?.email}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-xs text-green-600 font-medium">Online</span>
+
+          {/* Tooltip nama & email di desktop */}
+          <div
+            className="
+              hidden lg:block
+              absolute left-full ml-3 top-1/2 -translate-y-1/2
+              bg-slate-900/95 border border-white/10 rounded-xl
+              px-3 py-2 text-xs text-white shadow-xl
+              opacity-0 group-hover:opacity-100
+              pointer-events-none transition-opacity duration-200
+              whitespace-nowrap
+            "
+          >
+            <div className="font-semibold">
+              {currentUser?.displayName || "Dosen"}
+            </div>
+            <div className="text-[10px] text-gray-300">
+              {currentUser?.email}
             </div>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 px-6 py-8">
-        <div className="space-y-3">
-          {sidebarItems.map(item => (
-            <button 
-              key={item.id} 
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center space-x-4 px-6 py-4 rounded-2xl text-left transition-all duration-300 group ${
-                activeTab === item.id 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg transform scale-105' 
-                  : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
-              }`}
+      {/* Navigation: hanya ICON, teks muncul sebagai tooltip */}
+      <nav className="mt-4 flex-1 flex flex-col items-center gap-2 w-full">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const active = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                setSidebarOpen(false);
+              }}
+              className={`
+                relative group
+                w-12 h-12 mx-auto
+                flex items-center justify-center
+                rounded-2xl 
+                transition-all
+                ${
+                  active
+                    ? "bg-white/20 border border-white/30 text-white"
+                    : "text-gray-300 hover:bg-white/10"
+                }
+              `}
             >
-              <item.icon size={24} className={`${activeTab === item.id ? 'text-white' : 'text-gray-400 group-hover:text-blue-500'}`}/>
-              <div>
-                <span className="font-semibold text-base">{item.label}</span>
-                <p className={`text-xs mt-1 ${activeTab === item.id ? 'text-blue-100' : 'text-gray-400'}`}>
-                  {item.description}
-                </p>
-              </div>
+              <Icon className="w-5 h-5" />
+
+              {/* Tooltip label di desktop */}
+              <span
+                className="
+                  hidden lg:inline-block
+                  absolute left-full ml-3
+                  bg-slate-900/95 border border-white/10
+                  rounded-xl px-3 py-1.5 text-xs text-white
+                  shadow-xl whitespace-nowrap
+                  opacity-0 group-hover:opacity-100
+                  pointer-events-none transition-opacity duration-200
+                "
+              >
+                {item.label}
+              </span>
+
+              {/* Label biasa di mobile (sidebar full) */}
+              <span className="lg:hidden ml-3 text-sm font-medium">
+                {item.label}
+              </span>
+
+              {/* Bulatan indikator aktif di bawah icon */}
+              {active && (
+                <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-purple-400" />
+              )}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </nav>
 
-      <div className="p-6 border-t border-gray-200">
-        <button 
-          onClick={handleLogout} 
-          className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-300 group"
+      {/* Tombol logout – ikon + tooltip */}
+      <div className="mb-5">
+        <button
+          onClick={handleLogout}
+          className="
+            relative group
+            w-12 h-12 mx-auto
+            flex items-center justify-center
+            rounded-2xl 
+            text-red-400 hover:bg-red-500/10
+            transition-all
+          "
         >
-          <LogOut size={24} className="text-red-500 group-hover:text-red-600"/>
-          <div>
-            <span className="font-semibold text-base">Logout</span>
-            <p className="text-xs text-red-400 mt-1">Keluar dari sistem</p>
-          </div>
+          <LogOut className="w-5 h-5" />
+
+          {/* Tooltip logout di desktop */}
+          <span
+            className="
+              hidden lg:inline-block
+              absolute left-full ml-3
+              bg-slate-900/95 border border-red-500/40
+              rounded-xl px-3 py-1.5 text-xs text-red-200
+              shadow-xl whitespace-nowrap
+              opacity-0 group-hover:opacity-100
+              pointer-events-none transition-opacity duration-200
+            "
+          >
+            Keluar
+          </span>
+
+          {/* Label logout di mobile */}
+          <span className="lg:hidden ml-3 text-sm font-medium text-red-300">
+            Keluar
+          </span>
         </button>
       </div>
-    </div>
-);
-
-export default Sidebar;
-
+    </aside>
+  );
+}
